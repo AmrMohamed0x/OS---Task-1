@@ -8,35 +8,32 @@ namespace fat_file_system_cs
     {
         static void Main(string[] args)
         {
-            // Path where the virtual disk file will be stored (1 MB binary file)
             string diskPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\virtual_disk.bin");
-
             VirtualDisk vd = new VirtualDisk();
 
             try
             {
-                // 1️⃣ Initialize (create if missing)
-                vd.Initialize(diskPath, createIfMissing: true);
-                Console.WriteLine("Virtual disk initialized successfully!");
-                Console.WriteLine("Disk size: " + vd.GetDiskSize() + " bytes\n");
+                // Initialize virtual disk
+                vd.Initialize(diskPath, true);
+                Console.WriteLine("Disk initialized.");
 
-                // 2️⃣ Prepare a 1KB buffer to write to cluster 0
-                byte[] writeBuffer = new byte[1024];
-                string message = "Hello, Virtual Disk! This is a test message.";
-                Encoding.ASCII.GetBytes(message, 0, message.Length, writeBuffer, 0);
+                // Create Superblock manager
+                SuperblockManager sbm = new SuperblockManager(vd);
 
-                // 3️⃣ Write to cluster 0
-                vd.WriteCluster(0, writeBuffer);
-                Console.WriteLine("Data written to cluster 0.");
+                // Write some text into the superblock
+                byte[] superData = new byte[FsConstants.CLUSTER_SIZE];
+                string info = "Simple Superblock initialized successfully!";
+                Encoding.ASCII.GetBytes(info, 0, info.Length, superData, 0);
 
-                // 4️⃣ Read cluster 0 back
-                byte[] readBuffer = vd.ReadCluster(0);
-                string result = Encoding.ASCII.GetString(readBuffer).TrimEnd('\0');
-                Console.WriteLine("Read from cluster 0: " + result);
+                sbm.WriteSuperblock(superData);
+                Console.WriteLine("Superblock written.");
 
-                // 5️⃣ Close the virtual disk
+                // Read it back
+                byte[] readBack = sbm.ReadSuperblock();
+                string text = Encoding.ASCII.GetString(readBack).TrimEnd('\0');
+                Console.WriteLine("Superblock content: " + text);
+
                 vd.CloseDisk();
-                Console.WriteLine("\nVirtual disk closed successfully.");
             }
             catch (Exception ex)
             {
